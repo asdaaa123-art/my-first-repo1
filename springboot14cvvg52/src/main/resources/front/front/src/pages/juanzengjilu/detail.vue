@@ -1,0 +1,944 @@
+<template>
+	<div>
+	<!--  -->
+		<div class="breadcrumb-preview">
+			<el-breadcrumb :separator="'>'">
+				<el-breadcrumb-item class="item1" to="/"><a>首页</a></el-breadcrumb-item>
+				<el-breadcrumb-item class="item2" v-for="(item, index) in breadcrumbItem" :key="index" :to="'/index/juanzengjilu?centerType=' + (centerType?'1':'0')"><a>{{item.name}}</a></el-breadcrumb-item>
+				<el-breadcrumb-item class="item3"><a href="javascript:void(0);">详情</a></el-breadcrumb-item>
+			</el-breadcrumb>
+		</div>
+		<div class="back_box">
+			<el-button class="backBtn" size="mini" @click="backClick">
+				<span class="icon iconfont icon-jiantou33"></span>
+				<span class="text">返回</span>
+			</el-button>
+		</div>
+		<div class="detail-preview">
+			<div class="attr">
+				<div class="info">
+					<div class="title-item">
+						<div class="detail-title">
+							{{detail.juanzengbianhao}}
+						</div>
+					</div>
+					<div class="item">
+						<div class="lable">所需物资</div>
+						<div class="text "  >{{detail.suoxuwuzi}}</div>
+					</div>
+					<div class="item">
+						<div class="lable">收货地址</div>
+						<div class="text "  >{{detail.shouhuodizhi}}</div>
+					</div>
+					<div class="item">
+						<div class="lable">捐赠者账号</div>
+						<div class="text "  >{{detail.juanzengzhezhanghao}}</div>
+					</div>
+					<div class="item">
+						<div class="lable">捐赠者姓名</div>
+						<div class="text "  >{{detail.juanzengzhexingming}}</div>
+					</div>
+					<div class="item">
+						<div class="lable">受助者账号</div>
+						<div class="text "  >{{detail.shouzhuzhezhanghao}}</div>
+					</div>
+					<div class="item">
+						<div class="lable">受助者姓名</div>
+						<div class="text "  >{{detail.shouzhuzhexingming}}</div>
+					</div>
+					<div class="item">
+						<div class="lable">捐赠列表</div>
+						<div class="text "  >{{detail.juanzengliebiao}}</div>
+					</div>
+					<div class="item">
+						<div class="lable">捐赠时间</div>
+						<div class="text "  >{{detail.juanzengshijian}}</div>
+					</div>
+					<div class="item">
+						<div class="lable">备注</div>
+						<div class="text "  >{{detail.beizhu}}</div>
+					</div>
+					<div class="item">
+						<div class="lable">捐赠状态</div>
+						<div class="text "  >{{detail.juanzengzhuangtai}}</div>
+					</div>
+					<div class="item" v-if="centerType">
+						<div class="lable">审核状态</div>
+						<div class="text">{{detail.sfsh=='是'?'通过':(detail.sfsh=='否'?'不通过':'待审核')}}</div>
+					</div>
+					<div class="item" v-if="centerType">
+						<div class="lable">审核回复</div>
+						<div class="text">{{detail.shhf}}</div>
+					</div>
+					<div class="btn_box">
+						<el-button class="editBtn" v-if="btnAuth('juanzengjilu','修改')&&detail.sfsh!='是'&&detail.sfsh!='否' " @click="editClick">修改</el-button>
+						<el-button class="delBtn" v-if="btnAuth('juanzengjilu','删除')" @click="delClick">删除</el-button>
+						<el-button class="chatBtn" v-if="btnAuth('juanzengjilu','私聊')&&detail.id!=mid" @click="chatClick">联系TA</el-button>
+						<el-button class="reserveBtn" 
+							v-if="btnAuth('juanzengjilu','接受捐赠')" 
+							@click="onAcross('jieshoujuanzeng','是','','juanzengzhuangtai','已接收','已接收,审核中'.split(',')[0])" type="warning">
+							接受捐赠
+						</el-button>
+						<el-button class="auditBtn" v-if="btnAuth('juanzengjilu','审核') && (detail.sfsh=='待审核'||!detail.sfsh)" @click="onSH" type="warning">审核</el-button>
+					</div>
+				</div>
+			</div>
+		
+			<el-carousel v-if="detailBanner.length" trigger="click" indicator-position="inside" arrow="always" type="default" direction="horizontal" height="480px" :autoplay="true" :interval="3000" :loop="true">
+				<el-carousel-item v-for="item in detailBanner" :key="item.id">
+					<img :preview-src-list="[item]" v-if="item.substr(0,4)=='http'" :src="item" class="image">
+					<img :preview-src-list="[baseUrl + item]" v-else :src="baseUrl + item" class="image">
+				</el-carousel-item>
+			</el-carousel>
+
+
+		
+
+			<el-tabs class="detail-tabs" v-model="activeName" type="border-card" v-if="tabsNum>0" >
+			</el-tabs>
+			<el-dialog title="审核" :visible.sync="sfshVisiable" width="50%">
+				<el-form ref="shForm" :model="shForm" label-width="80px">
+					<el-form-item label="审核状态">
+						<el-select v-model="shForm.sfsh" placeholder="审核状态">
+							<el-option label="通过" value="是"></el-option>
+							<el-option label="不通过" value="否"></el-option>
+							<el-option label="待审核" value="待审核"></el-option>
+						</el-select>
+					</el-form-item>
+					<el-form-item label="内容">
+						<el-input type="textarea" :rows="8" v-model="shForm.shhf"></el-input>
+					</el-form-item>
+				</el-form>
+				<div slot="footer" class="dialog-footer">
+					<el-button @click="sfshVisiable = false">取 消</el-button>
+					<el-button type="primary" @click="shHandler">确 定</el-button>
+				</div>
+			</el-dialog>
+
+		</div>
+		<div class="share_view">
+		</div>
+		<el-dialog :visible.sync="chatVisible" @close="clearChat" :title="fname">
+			<div class="chat-content" id="chat-content">
+				<div v-bind:key="item.id" v-for="item in chatList">
+					<div v-if="item.addtime" class="addtime">{{timeFormat(item.addtime)}}</div>
+					<div v-if="item.uid==mid" class="right-content">
+						<el-alert v-if="item.format==1" class="text-content" :title="item.content" :closable="false"
+							type="warning"></el-alert>
+						<el-image v-else fit="cover" :src="item.content?baseUrl + item.content:''" style="width: 100px;height: 100px;" :preview-src-list="[item.content?baseUrl + item.content:'']"></el-image>
+						<img :src="mpic?baseUrl + mpic:require('@/assets/avator.png')" alt="" style="width: 30px;border-radius: 50%;height: 30px;margin: 0 0 0 10px;" />
+					</div>
+					<div v-else class="left-content">
+						<img :src="fpic?baseUrl + fpic:require('@/assets/avator.png')" alt="" style="width: 30px;border-radius: 50%;height: 30px;margin: 0 10px 0 0;" />
+						<el-alert v-if="item.format==1" class="text-content" :title="item.content" :closable="false"
+							type="success"></el-alert>
+						<el-image v-else fit="cover" :src="item.content?baseUrl + item.content:''" style="width: 100px;height: 100px;" :preview-src-list="[item.content?baseUrl + item.content:'']"></el-image>
+						
+					</div>
+					<div class="clear-float"></div>
+				</div>
+			</div>
+			<div slot="footer" class="dialog-footer">
+				<el-input size="small" @keydown.enter.native="addChat(null)" v-model="chatForm.content" placeholder="请输入内容" style="width: calc(100% - 240px);float: left;">
+				</el-input>
+				<el-button size="small" :disabled="chatForm.content?false:true" type="primary" @click="addChat(null)">发送</el-button>
+				<el-upload style="display: inline-block;margin: 0 6px;" class="upload-demo" :action="uploadUrl" :on-success="uploadSuccess"
+					:show-file-list="false">
+					<el-button size="small" type="success">上传图片</el-button>
+				</el-upload>
+				<el-button v-if="showSaveType" size="small" type="primary" @click="saveGood">详情图发送</el-button>
+			</div>
+		</el-dialog>
+	</div>
+</template>
+
+<script>
+	import axios from 'axios'
+	import Swiper from "swiper";
+	import timeMethod from '@/common/timeMethod'
+	import {
+		WebsocketMixin
+	} from '@/mixins/WebsocketMixin'
+	export default {
+		mixins: [WebsocketMixin],
+		//数据集合
+		data() {
+			return {
+				tablename: 'juanzengjilu',
+				baseUrl: '',
+				breadcrumbItem: [
+					{
+						name: '捐赠记录'
+					}
+				],
+				title: '',
+				detailBanner: [],
+				userid: Number(localStorage.getItem('frontUserid')),
+				id: 0,
+				detail: {},
+				tabsNum: 0,
+				activeName: 'first',
+				total: 1,
+				pageSize: 10,
+				totalPage: 1,
+				buynumber: 1,
+				sfshVisiable: false,
+				shForm: {
+					sfsh: '是',
+					shhf: ''
+				},
+				centerType: false,
+				storeupType: false,
+				shareUrl: location.href,
+				mid: Number(localStorage.getItem('frontUserid')),
+				chatVisible: false,
+				chatList: [],
+				chatForm: {
+					content: ''
+				},
+				uploadUrl: this.$config.baseUrl + 'file/upload',
+				fpic: '',
+				fname: '',
+				fid: '',
+				mpic: localStorage.getItem('frontHeadportrait'),
+				showSaveType: true,
+			}
+		},
+		created() {
+			if(this.$route.query.centerType&&this.$route.query.centerType!=0) {
+				this.centerType = true
+			}
+			if(this.$route.query.storeupType&&this.$route.query.storeupType!=0) {
+				this.storeupType = true
+			}
+			
+			this.init();
+		},
+		mounted() {
+		},
+		//方法集合
+		methods: {
+			init() {
+				this.id = this.$route.query.id
+				this.baseUrl = this.$config.baseUrl;
+				this.$http.get(this.tablename + '/detail/'  + this.id, {}).then(res => {
+					if (res.data.code == 0) {
+						this.detail = res.data.data;
+						this.title = this.detail.juanzengbianhao;
+						if(this.detail.juanzengzhaopian) {
+							this.detailBanner = this.detail.juanzengzhaopian.split(",w").length>1?[this.detail.juanzengzhaopian]:this.detail.juanzengzhaopian.split(',');
+						}
+						if(res.data.data.touxiang){
+							this.fpic = res.data.data.touxiang.split(',')[0]
+						}else if(res.data.data.headportrait){
+							this.fpic = res.data.data.headportrait.split(',')[0]
+						}
+						this.$forceUpdate();
+						if(localStorage.getItem('frontToken')){
+						}
+
+					}
+				});
+			},
+			async onAcross(acrossTable,crossOptAudit,crossOptPay,statusColumnName,tips,statusColumnValue,type=1){
+				if(crossOptAudit=='是'&&this.detail.sfsh!='是') {
+					this.$message({
+						message: "请审核通过后再操作",
+						type: "error",
+						duration: 1500,
+						onClose: () => {
+						}
+					});
+					return
+				}
+				localStorage.setItem('crossTable',`juanzengjilu`);
+				localStorage.setItem('crossObj', JSON.stringify(this.detail));
+				localStorage.setItem('statusColumnName',statusColumnName);
+				localStorage.setItem('statusColumnValue',statusColumnValue);
+				localStorage.setItem('tips',tips);
+				if(statusColumnName!=''&&!statusColumnName.startsWith("[")) {
+					var obj = JSON.parse(localStorage.getItem('crossObj'));
+					for (var o in obj){
+						if(o==statusColumnName && obj[o]==statusColumnValue){
+							this.$message({
+								type: 'error',
+								message: tips,
+								duration: 1500
+							});
+							return
+						}
+					}
+				}
+				this.$router.push({path: '/index/' + acrossTable + 'Add', query: {type: 'cross'}});
+			},
+			onSH() {
+				this.sfshVisiable = true;
+			},
+			shHandler(){
+				this.$confirm(`确定操作?`, "提示", {
+					confirmButtonText: "确定",
+					cancelButtonText: "取消",
+					type: "warning"
+				}).then(() => {
+					this.detail.sfsh = this.shForm.sfsh;
+					this.detail.shhf = this.shForm.shhf;
+					this.$http.post(`${this.tablename}/update`, this.detail).then(res => {
+						if (res.data.code == 0) {
+							this.sfshVisiable = false;
+							this.$message({
+								message: "操作成功",
+								type: "success",
+								duration: 1500,
+							});
+						}
+					});
+				});
+			},
+			curChange(page) {
+				this.getDiscussList(page);
+			},
+			prevClick(page) {
+				this.getDiscussList(page);
+			},
+			nextClick(page) {
+				this.getDiscussList(page);
+			},
+			sizeChange(size){
+				this.pageSize = size
+				this.getDiscussList(1);
+			},
+			// 返回按钮
+			backClick(){
+				if(this.storeupType){
+					history.back()
+				}else{
+					let params = {}
+					if(this.centerType){
+						params.centerType = 1
+					}
+					this.$router.push({path: '/index/juanzengjilu', query: params});
+				}
+			},
+			// 下载
+			download(file ){
+				if(!file) {
+					this.$message({
+						type: 'error',
+						message: '文件不存在',
+						duration: 1500,
+					});
+					return;
+				}
+				let arr = file.replace(new RegExp('upload/', "g"), "")
+				axios.get(this.baseUrl + '/file/download?fileName=' + arr, {
+					headers: {
+						token: localStorage.getItem("frontToken")
+					},
+					responseType: "blob"
+				}).then(({
+					data
+				}) => {
+					const binaryData = [];
+					binaryData.push(data);
+					const objectUrl = window.URL.createObjectURL(new Blob(binaryData, {
+						type: 'application/pdf;chartset=UTF-8'
+					}))
+					const a = document.createElement('a')
+					a.href = objectUrl
+					a.download = arr
+					// a.click()
+					// 下面这个写法兼容火狐
+					a.dispatchEvent(new MouseEvent('click', {
+						bubbles: true,
+						cancelable: true,
+						view: window
+					}))
+					window.URL.revokeObjectURL(data)
+				},err=>{
+					axios.get((location.href.split(this.$config.name).length>1 ? location.href.split(this.$config.name)[0] :'') + this.$config.name + '/file/download?fileName=' + arr, {
+						headers: {
+							token: localStorage.getItem("frontToken")
+						},
+						responseType: "blob"
+					}).then(({
+						data
+					}) => {
+						const binaryData = [];
+						binaryData.push(data);
+						const objectUrl = window.URL.createObjectURL(new Blob(binaryData, {
+							type: 'application/pdf;chartset=UTF-8'
+						}))
+						const a = document.createElement('a')
+						a.href = objectUrl
+						a.download = arr
+						// a.click()
+						// 下面这个写法兼容火狐
+						a.dispatchEvent(new MouseEvent('click', {
+							bubbles: true,
+							cancelable: true,
+							view: window
+						}))
+						window.URL.revokeObjectURL(data)
+					})
+				})
+			},
+
+
+			// 权限判断
+			btnAuth(tableName,key){
+				if(this.centerType){
+					return this.isBackAuth(tableName,key)
+				}else{
+					return this.isAuth(tableName,key)
+				}
+			},
+			// 修改
+			editClick(){
+				this.$router.push(`/index/juanzengjiluAdd?type=edit&&id=${this.detail.id}`);
+			},
+			// 删除
+			async delClick(){
+				await this.$confirm('是否删除此捐赠记录？') .then(_ => {
+					this.$http.post('juanzengjilu/delete', [this.detail.id]).then(async res => {
+						if (res.data.code == 0) {
+							this.$message({
+								type: 'success',
+								message: '删除成功!',
+								duration: 1500,
+								onClose: () => {
+									history.back()
+								}
+							});
+						}
+					});
+				}).catch(_ => {});
+			},
+		
+			chatClick() {
+				let user = JSON.parse(localStorage.getItem('sessionForm'))
+				if(localStorage.getItem('frontSessionTable')=='juanzengzhe') {
+					if(this.detail.juanzengzhezhanghao == user.juanzengzhezhanghao){
+						this.$message.error('不能给自己发信息')
+						return false
+					}
+				}
+				this.$http.get('juanzengzhe/query', {
+					params: {
+						juanzengzhezhanghao: this.detail.juanzengzhezhanghao
+					}
+				}).then(res => {
+					if (res.data && res.data.code == 0) {
+						this.fid = res.data.data.id
+						this.initWebSocket(this.fid)
+						this.fname = res.data.data.juanzengzhezhanghao
+						if (res.data.data.touxiang) {
+							this.fpic = res.data.data.touxiang.split(',')[0]
+						} else if (res.data.data.headportrait) {
+							this.fpic = res.data.data.headportrait.split(',')[0]
+						}
+						this.getChatList()
+						this.chatVisible = true
+					}
+				})
+			},
+			saveGood(){
+				this.showSaveType = false
+				this.$http.get('friend/page', {
+					params: {
+						uid: Number(localStorage.getItem('frontUserid')),
+						fid: this.fid,
+					}
+				}).then(obj => {
+					if (obj.data && obj.data.code == 0) {
+						if (!obj.data.data.list.length) {
+							this.$http.post('friend/add', {
+								uid: Number(localStorage.getItem('frontUserid')),
+								fid: this.fid,
+								name: this.fname,
+								picture: this.fpic,
+								type: 2,
+								tablename:  'juanzengzhe' ,
+							}).then(res => {
+								this.$http.post('friend/add', {
+									uid: this.fid,
+									fid: Number(localStorage.getItem('frontUserid')),
+									type: 2,
+									tablename: localStorage.getItem('frontSessionTable'),
+									name: localStorage.getItem('username'),
+									picture: this.mpic,
+								}).then(res1 => {
+				
+								})
+							})
+						}
+						this.$http.post('chatmessage/add', {
+							uid: Number(localStorage.getItem('frontUserid')),
+							fid: this.fid,
+							content: this.detailBanner[0],
+							format: 2
+						}).then(res2 => {
+							this.websocketSend(this.detailBanner[0])
+							this.chatForm = {
+								content: ''
+							}
+							this.getChatList()
+						})
+					}
+				})
+			},
+			websocketOnopen: function() {
+				
+			},
+			websocketOnmessage:function(e) {
+				this.getChatList()
+			},
+			getChatList() {
+				this.$http.get('chatmessage/mlist', {
+					params: {
+						page: 1,
+						limit: 1000,
+						uid: Number(localStorage.getItem('frontUserid')),
+						fid: this.fid
+					}
+				}).then(res => {
+					if (res.data && res.data.code == 0) {
+						this.chatList = this.formatMessages(res.data.data.list)
+						let div = document.getElementsByClassName('chat-content')[0]
+						setTimeout(() => {
+							if (div)
+								div.scrollTop = div.scrollHeight
+						}, 0)
+					}
+				})
+			},
+			formatMessages(messages) {
+				let lastTime = null;
+				messages.forEach((message, index) => {
+					const currentTime = new Date(message.addtime).getTime();
+					if (lastTime !== null) {
+						const timeDiff = (currentTime - lastTime) / 1000 / 60; // 转换为分钟
+						if (timeDiff < 3) {
+							message.addtime = ''; // 如果小于3分钟，不显示时间
+						}
+					}
+					lastTime = currentTime;
+				});
+				return messages;
+			},
+			timeFormat(time) {
+				const Time = timeMethod.getTime(time).split("T");
+				//当前消息日期属于周
+				const week = timeMethod.getDateToWeek(time);
+				//当前日期0时
+				const nti = timeMethod.setTimeZero(timeMethod.getNowTime());
+				//消息日期当天0时
+				const mnti = timeMethod.setTimeZero(timeMethod.getTime(time));
+				//计算日期差值
+				const diffDate = timeMethod.calculateTime(nti, mnti);
+				//本周一日期0时 （后面+1是去除当天时间）
+				const fwnti = timeMethod.setTimeZero(timeMethod.countDateStr(-timeMethod.getDateToWeek(timeMethod
+					.getNowTime()).weekID + 1));
+				//计算周日期差值
+				const diffWeek = timeMethod.calculateTime(mnti, fwnti);
+
+				if (diffDate === 0) { //消息发送日期减去当天日期如果等于0则是当天时间
+					return Time[1].slice(0, 5);
+				} else if (diffDate < 172800000) { //当前日期减去消息发送日期小于2天（172800000ms）则是昨天-  一天最大差值前天凌晨00:00:00到今天晚上23:59:59
+					return "昨天 " + Time[1].slice(0, 5);
+				} else if (diffWeek >= 0) { //消息日期减去本周一日期大于0则是本周
+					return week.weekName;
+				} else { //其他时间则是日期
+					return Time[0].slice(5, 10);
+				}
+			},
+			clearChat(){
+				this.websocketOnclose();
+			},
+			uploadSuccess(res) {
+				if (res.code == 0) {
+					this.addChat('upload/' + res.file)
+				}
+			},
+			addChat(ask=null) {
+				this.$http.get('friend/page', {
+					params: {
+						uid: Number(localStorage.getItem('frontUserid')),
+						fid: this.fid,
+					}
+				}).then(obj => {
+					if (obj.data && obj.data.code == 0) {
+						if (!obj.data.data.list.length) {
+							this.$http.post('friend/add', {
+								uid: Number(localStorage.getItem('frontUserid')),
+								fid: this.fid,
+								name: this.fname,
+								picture: this.fpic,
+								type: 2,
+								tablename:  'juanzengzhe' ,
+							}).then(res => {
+								this.$http.post('friend/add', {
+									uid: this.fid,
+									fid: Number(localStorage.getItem('frontUserid')),
+									type: 2,
+									tablename: localStorage.getItem('frontSessionTable'),
+									name: localStorage.getItem('username'),
+									picture: this.mpic,
+								}).then(res1 => {
+			
+								})
+							})
+						}
+						this.$http.post('chatmessage/add', {
+							uid: Number(localStorage.getItem('frontUserid')),
+							fid: this.fid,
+							content: ask?ask:this.chatForm.content,
+							format: ask?2:1
+						}).then(res2 => {
+							this.websocketSend(ask?ask:this.chatForm.content)
+							this.chatForm = {
+								content: ''
+							}
+							this.getChatList()
+						})
+					}
+				})
+			},
+		},
+		components: {
+		}
+	}
+</script>
+
+<style rel="stylesheet/scss" lang="scss" scoped>
+	.detail-preview {
+		padding: 20px 0;
+		margin: 0px auto;
+		color: #666;
+		display: flex;
+		width: 1200px;
+		font-size: 16px;
+		justify-content: flex-start;
+		align-items: flex-start;
+		position: relative;
+		flex-wrap: wrap;
+		.attr {
+			padding: 0;
+			background: none;
+			flex: 1;
+			display: block;
+			width: 100%;
+			position: relative;
+			.info {
+				padding: 0;
+				margin: 0;
+				background: none;
+				width: 100%;
+				.title-item {
+					border: 1px solid #ddd;
+					padding: 0 10px;
+					margin: 0 auto 3px;
+					background: #fff;
+					display: flex;
+					border-color: #eee #f7db61;
+					line-height: 40px;
+					justify-content: space-between;
+					align-items: center;
+					.detail-title {
+						color: #333;
+						font-weight: 600;
+						font-size: 18px;
+					}
+				}
+				.item {
+					border: 1px solid #ddd;
+					padding: 0;
+					margin: 0 0 3px 0;
+					background: none;
+					display: flex;
+					border-color: #eee #f7db61;
+					justify-content: spaceBetween;
+					.lable {
+						padding: 0 20px;
+						color: #333;
+						white-space: nowrap;
+						font-weight: 500;
+						width: auto;
+						font-size: inherit;
+						line-height: 40px;
+						text-align: right;
+						height: 40px;
+					}
+					.text {
+						padding: 8px 10px 0;
+						color: inherit;
+						word-break: break-all;
+						flex: 1;
+						font-size: inherit;
+						line-height: 24px;
+						height: auto;
+					}
+					.price {
+						color: #f00;
+					}
+					.bold {
+						font-weight: bold;
+					}
+					.link {
+						cursor: pointer;
+						text-decoration: underline;
+					}
+				}
+				.btn_box {
+					padding: 10px 0;
+					display: flex;
+					flex-wrap: wrap;
+				}
+				.editBtn {
+					border: 0;
+					cursor: pointer;
+					border-radius: 4px;
+					padding: 0 10px;
+					margin: 0 5px 0 0;
+					outline: none;
+					color: #000;
+					background: rgba(64, 158, 255, .2);
+					width: auto;
+					font-size: inherit;
+					line-height: 40px;
+					height: 40px;
+				}
+				.editBtn:hover {
+					background: rgba(64, 158, 255, 0.3);
+				}
+				.delBtn {
+					border: 0;
+					cursor: pointer;
+					border-radius: 4px;
+					padding: 0 10px;
+					margin: 0 5px 0 0;
+					outline: none;
+					color: #000;
+					background: rgba(255, 0, 0, .1);
+					width: auto;
+					font-size: inherit;
+					line-height: 40px;
+					height: 40px;
+				}
+				.delBtn:hover {
+					background: rgba(255, 0, 0, .2);
+				}
+				.chatBtn {
+					border: 0;
+					cursor: pointer;
+					border-radius: 4px;
+					padding: 0 10px;
+					margin: 0 5px 0 0;
+					outline: none;
+					color: #000;
+					background: rgba(70,252,245,.2);
+					width: auto;
+					font-size: inherit;
+					line-height: 40px;
+					height: 40px;
+				}
+				.chatBtn:hover {
+					background: rgba(70,252,245,.4);
+				}
+				.auditBtn {
+					border: 0;
+					cursor: pointer;
+					border-radius: 4px;
+					padding: 0 10px;
+					margin: 0 5px 0 0;
+					outline: none;
+					color: #000;
+					background: rgba(252,70,70,.1);
+					width: auto;
+					font-size: inherit;
+					line-height: 40px;
+					height: 40px;
+				}
+				.auditBtn:hover {
+					background: rgba(252,70,70,.2);
+				}
+			}
+		}
+		.el-carousel {
+			margin: 0 40px 0 0;
+			width: calc(50% - 40px);
+			height: 480px;
+			order: -2;
+			/deep/ .el-carousel__indicator button {
+				width: 0;
+				height: 0;
+				display: none;
+			}
+			/deep/ .el-carousel__container {
+				.el-carousel__arrow--left {
+					width: 36px;
+					font-size: 12px;
+					height: 36px;
+				}
+				.el-carousel__arrow--left:hover {
+					background: red;
+				}
+				.el-carousel__arrow--right {
+					width: 36px;
+					font-size: 12px;
+					height: 36px;
+				}
+				.el-carousel__arrow--right:hover {
+					background: red;
+				}
+				.el-carousel__item {
+					border-radius: 10px;
+					width: 100%;
+					height: 100%;
+					img {
+						object-fit: cover;
+						width: 100%;
+						height: 100%;
+					}
+				}
+			}
+		
+			/deep/ .el-carousel__indicators {
+				padding: 0;
+				margin: 0;
+				z-index: 2;
+				position: absolute;
+				list-style: none;
+				li {
+					padding: 0;
+					margin: 0 4px;
+					background: #fff;
+					display: inline-block;
+					width: 12px;
+					opacity: 0.4;
+					transition: 0.3s;
+					height: 12px;
+				}
+				li:hover {
+					padding: 0;
+					margin: 0 4px;
+					background: #fff;
+					display: inline-block;
+					width: 24px;
+					opacity: 0.7;
+					height: 12px;
+				}
+				li.is-active {
+					padding: 0;
+					margin: 0 4px;
+					background: #fff;
+					display: inline-block;
+					width: 24px;
+					opacity: 1;
+					height: 12px;
+				}
+			}
+		}
+		.detail-tabs {
+			border: 0px solid #ccc;
+			box-shadow: none;
+			margin: 20px auto;
+			background: #FFF;
+			width: 100%;
+			& /deep/ .el-tabs__header .el-tabs__nav-wrap {
+				margin-bottom: 0;
+			}
+			/deep/ .el-tabs__header {
+				padding: 5px 5px 0;
+				margin: 0;
+				background: #f7db61;
+				border-color: #1f292f;
+				border-width: 0 0 1px 0;
+				border-style: solid;
+			}
+			
+			/deep/ .el-tabs__header .el-tabs__item {
+				border: 0;
+				padding: 0 20px;
+				margin: 0 5px;
+				color: #333;
+				background: transparent;
+				font-weight: 500;
+				display: inline-block;
+				font-size: inherit;
+				line-height: auto;
+				position: relative;
+				list-style: none;
+				height: auto;
+			}
+			
+			/deep/ .el-tabs__header .el-tabs__item:hover {
+				border: 0;
+				border-radius: 20px 20px 0 0;
+				color: #333;
+				background: #fff;
+			}
+			
+			/deep/ .el-tabs__header .el-tabs__item.is-active {
+				border: 0;
+				border-radius: 20px 20px 0 0;
+				margin: 0 5px;
+				color: #333;
+				background: #fff;
+				font-size: inherit;
+			}
+			
+			/deep/ .el-tabs__content {
+				padding: 15px;
+			}
+		}
+	}
+	.share_view{
+		box-shadow: 0 1px 6px rgba(0,0,0,.3);
+		z-index: 11;
+		bottom: 20%;
+		background: #fff;
+		position: fixed;
+		right: 0;
+		.share:last-of-type{
+			border:none;
+		}
+	}
+	.chat-content {
+		padding-bottom: 20px;
+		width: 100%;
+		margin-bottom: 10px;
+		max-height: 300px;
+		height: 300px;
+		overflow-y: scroll;
+		border: 1px solid #eeeeee;
+		background: #fff;
+	
+		.addtime {
+			width: 100%;
+			text-align: center;
+			font-size: 12px;
+		}
+		
+		.left-content {
+			float: left;
+			margin-bottom: 10px;
+			padding: 10px;
+			max-width: 80%;
+			display: flex;
+			align-items: center;
+		}
+	
+		.right-content {
+			float: right;
+			margin-bottom: 10px;
+			padding: 10px;
+			max-width: 80%;
+			display: flex;
+			align-items: center;
+		}
+	}
+	
+	.clear-float {
+		clear: both;
+	}
+</style>
